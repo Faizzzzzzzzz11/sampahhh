@@ -1,0 +1,314 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --ink: #0F172A;
+  --ink2: #334155;
+  --paper: #F5F7F6;
+  --line: #E2E8E5;
+  --teal: #136D42;
+  --red: #DC2626;
+  --amber: #D97706;
+  --green: #16A34A;
+  --grey: #64748B;
+  color-scheme: light;
+}
+
+html.dark, :root.dark {
+  --ink: #F3F7F5;
+  --ink2: #D1DDD8;
+  --paper: #0B1317;
+  --line: #243741;
+  --teal: #10B981;
+  --red: #EF4444;
+  --amber: #F59E0B;
+  --green: #10B981;
+  --grey: #859B93;
+  color-scheme: dark;
+}
+
+body {
+  font-family: 'Public Sans', system-ui, sans-serif;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+h1, h2, h3, h4, .display {
+  font-family: 'Bricolage Grotesque', 'Public Sans', sans-serif;
+  letter-spacing: -0.015em;
+}
+
+/* ==============================================================
+   LEAFLET STACKING CONTEXT ISOLATION
+   Mencegah peta & marker tembus ke Header, Banner, Modal, dan UI lain
+   ============================================================== */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  isolation: isolate !important;
+  position: relative !important;
+  z-index: 0 !important;
+  font-family: 'Public Sans', system-ui, sans-serif !important;
+}
+
+/* Batasi z-index internal leaflet agar tidak keluar dari container */
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 20 !important;
+}
+
+.leaflet-pane {
+  z-index: 10 !important;
+}
+
+.leaflet-tile-pane {
+  z-index: 1 !important;
+}
+
+.leaflet-overlay-pane {
+  z-index: 2 !important;
+}
+
+.leaflet-shadow-pane {
+  z-index: 3 !important;
+}
+
+.leaflet-marker-pane {
+  z-index: 4 !important;
+}
+
+.leaflet-tooltip-pane {
+  z-index: 5 !important;
+}
+
+.leaflet-popup-pane {
+  z-index: 6 !important;
+}
+
+/* Leaflet Custom Marker & Popup Fixes */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+  font-family: 'Public Sans', system-ui, sans-serif !important;
+  padding: 4px !important;
+}
+
+.custom-bin-marker,
+.custom-depot-marker,
+.custom-dist-pill {
+  background: none !important;
+  border: none !important;
+}
+
+.custom-stop-badge {
+  background: none !important;
+  border: none !important;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s ease !important;
+}
+
+.route-fade-enter {
+  animation: routePopIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes routePopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.leaflet-overlay-pane svg path.route-path {
+  transition: opacity 0.4s ease-in-out, stroke-dashoffset 0.5s ease-out;
+}
+
+.custom-truck-marker {
+  background: none !important;
+  border: none !important;
+  overflow: visible !important;
+  z-index: 500 !important;
+}
+
+/* Animations */
+@keyframes pulseSoft {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.pulse-truck {
+  animation: pulseSoft 1.5s infinite;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F1F5F3;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* ==============================================================
+   HIGH-CONTRAST DARK MODE SURFACE OVERRIDES
+   ============================================================== */
+html.dark body {
+  background-color: #0B1317 !important;
+  color: #F3F7F5 !important;
+}
+
+/* Base Surfaces & Cards in Dark Mode */
+html.dark .bg-white {
+  background-color: #121D22 !important;
+  color: #F3F7F5;
+}
+
+html.dark .bg-\[\#EEF1EC\],
+html.dark .bg-\[\#F5F7F6\] {
+  background-color: #0B1317 !important;
+}
+
+html.dark .bg-\[\#F8FAF9\],
+html.dark .bg-\[\#F8FAF6\],
+html.dark .bg-\[\#F5F7F3\],
+html.dark .bg-\[\#F4F6F1\],
+html.dark .bg-\[\#FAFBFB\],
+html.dark .bg-\[\#E8ECE6\] {
+  background-color: #17262D !important;
+}
+
+html.dark .bg-slate-50,
+html.dark .bg-slate-100 {
+  background-color: #15242B !important;
+}
+
+html.dark .bg-slate-200 {
+  background-color: #21353E !important;
+}
+
+/* High contrast borders */
+html.dark .border-\[\#D9DFD7\],
+html.dark .border-\[\#E5E9E2\],
+html.dark .border-\[\#E2E8E5\],
+html.dark .border-\[\#C4CEC2\],
+html.dark .border-slate-200,
+html.dark .border-slate-300 {
+  border-color: #243741 !important;
+}
+
+html.dark .divide-\[\#E5E9E2\] > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-\[\#E2E8E5\] > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #243741 !important;
+}
+
+/* High contrast typography */
+html.dark .text-\[\#10303A\],
+html.dark .text-slate-900,
+html.dark .text-slate-800 {
+  color: #F3F7F5 !important;
+}
+
+html.dark .text-\[\#33463B\],
+html.dark .text-\[\#46554B\],
+html.dark .text-\[\#5B6A60\],
+html.dark .text-slate-700,
+html.dark .text-slate-600 {
+  color: #A3B9B1 !important;
+}
+
+html.dark .text-\[\#7D8B81\],
+html.dark .text-slate-500,
+html.dark .text-slate-400 {
+  color: #799088 !important;
+}
+
+html.dark footer {
+  background-color: #0D171C !important;
+  border-color: #243741 !important;
+}
+
+/* Form Inputs, Selects, and Textareas in Dark Mode */
+html.dark select,
+html.dark input[type="text"],
+html.dark input[type="search"],
+html.dark input[type="number"],
+html.dark textarea {
+  background-color: #17262D !important;
+  color: #F3F7F5 !important;
+  border-color: #2E4450 !important;
+}
+
+html.dark select option {
+  background-color: #17262D !important;
+  color: #F3F7F5 !important;
+}
+
+/* Table Hover in Dark Mode */
+html.dark tr.hover\:bg-slate-50:hover,
+html.dark tr.hover\:bg-slate-100:hover {
+  background-color: #182830 !important;
+}
+
+/* Modals & Dialogs in Dark Mode */
+html.dark .bg-slate-900\/50,
+html.dark .bg-slate-900\/60 {
+  background-color: rgba(3, 7, 9, 0.78) !important;
+}
+
+/* Leaflet Dark Theme Overrides */
+.dark-map-tiles {
+  filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(110%);
+}
+
+html.dark .leaflet-container {
+  background-color: #0B1317 !important;
+}
+
+html.dark .leaflet-popup-content-wrapper {
+  background-color: #121D22 !important;
+  color: #F3F7F5 !important;
+  border: 1px solid #2E4450 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.75) !important;
+}
+
+html.dark .leaflet-popup-tip {
+  background-color: #121D22 !important;
+}
+
+html.dark .leaflet-popup-content div {
+  color: #F3F7F5;
+}
+
+/* Dark Mode Scrollbars */
+html.dark ::-webkit-scrollbar-track {
+  background: #0B1317;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #243741;
+  border-radius: 4px;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #354E5B;
+}
