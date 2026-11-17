@@ -141,7 +141,7 @@ export const RoutePlanPanel: React.FC<RoutePlanPanelProps> = ({
             {result.trips.map((trip: Trip, idx: number) => {
               const dotColor = TRIP_DOT_COLORS[idx % TRIP_DOT_COLORS.length];
               const tripKm = trip.realRoadKm || toRealKm(trip.distance);
-              const tripMin = toTravelMinutes(trip.distance, config);
+              const tripMin = toTravelMinutes(parseFloat(tripKm) || trip.distance, config);
               const fillPct = Math.round((trip.loadLiter / config.C) * 100);
               const isSelected = selectedTripFilter === trip.tripIndex;
               const dirKey = String(trip.tripIndex);

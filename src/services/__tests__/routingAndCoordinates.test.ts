@@ -272,5 +272,33 @@ describe('MASALAH B: Sistem Koordinat Tunggal GPS & Validasi', () => {
     expect(fixed.roadCoords).toBeDefined();
     expect(fixed.roadCoords!.length).toBeGreaterThan(1);
   });
+
+  it('(e) getFixedTrip memulai rute dari tong terdekat ke pangkalan dan lebih efisien dari urutan ID acak', () => {
+    const depot: Depot = { id: 'P', name: 'Depot', lat: -7.7686, lng: 110.2952 };
+    // Create bins where ID=1 is far away, ID=2 is closest, ID=3 is medium
+    const farBin: Bin = { id: 1, name: 'Jauh', lat: -7.7950, lng: 110.3300, fill: 40, status: 'green' };
+    const nearBin: Bin = { id: 2, name: 'Terdekat', lat: -7.7688, lng: 110.2954, fill: 40, status: 'green' };
+    const midBin: Bin = { id: 3, name: 'Sedang', lat: -7.7750, lng: 110.3050, fill: 40, status: 'green' };
+
+    const fixed = getFixedTrip([farBin, nearBin, midBin], depot, DEFAULT_CONFIG);
+    // First stop must be the closest bin (nearBin id=2), not ID=1
+    expect(fixed.bins[0].id).toBe(2);
+    // And total distance using nearest-first TSP must be <= sequential ID tour distance
+    const naiveTourDist = calculateTourDistance([depot, farBin, nearBin, midBin, depot], DEFAULT_CONFIG);
+    const fixedMatrixDist = calculateTourDistance(fixed.tour, DEFAULT_CONFIG);
+    expect(fixedMatrixDist).toBeLessThanOrEqual(naiveTourDist);
+  });
+
+  it('(f) totalRealRoadKm akurat sesuai jarak aktual (tidak melonjak ke 27.7 km saat 10-13 tong)', () => {
+    const res = runFlowchartLogic(DEFAULT_BINS_24, DEFAULT_DEPOT, DEFAULT_CONFIG);
+    const fixed = getFixedTrip(DEFAULT_BINS_24, DEFAULT_DEPOT, DEFAULT_CONFIG);
+
+    const smartKm = parseFloat(res.totalRealRoadKm || '0');
+    const fixedKm = parseFloat(fixed.realRoadKm || '0');
+
+    expect(smartKm).toBeGreaterThan(0);
+    expect(smartKm).toBeLessThan(15); // Godean cluster within ~1 km radius should never jump to 27.7 km
+    expect(smartKm).toBeLessThanOrEqual(fixedKm);
+  });
 });
 

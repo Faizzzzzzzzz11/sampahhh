@@ -1103,6 +1103,21 @@ export default function App() {
                   onChangeSpeed={setAnimSpeed}
                 />
               )}
+
+              {/* Tingkat Efisiensi langsung di bawah peta */}
+              <EfficiencyCard
+                result={result}
+                config={config}
+                convPlan={convPlan}
+                binCount={bins.length}
+                fixedTrip={fixedTrip}
+                selectedTripFilter={selectedTripFilter}
+                onSelectTripFilter={setSelectedTripFilter}
+                onPlaySpecificTripAnim={handlePlaySpecificTripAnim}
+                showFixedComparison={showFixedComparison}
+                onToggleFixedComparison={() => setShowFixedComparison(prev => !prev)}
+                onOpenGoogleMapsForTrip={handleOpenGoogleMaps}
+              />
             </div>
           )}
 

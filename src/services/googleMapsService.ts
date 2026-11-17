@@ -308,7 +308,7 @@ export function buildTripRouteSegments(
         legNavUrl: buildGoogleMapsLegUrl(prevCoord.lat, prevCoord.lng, lat, lng),
         searchUrl: buildGoogleMapsSearchUrl(lat, lng),
         prevName: idx === 0 ? startName : segmentBins[idx - 1].name,
-        distanceFromPrevKm: distFromPrev.toFixed(1),
+        distanceFromPrevKm: distFromPrev > 0 && distFromPrev < 0.1 ? distFromPrev.toFixed(2) : distFromPrev.toFixed(1),
       };
     });
 
@@ -413,7 +413,7 @@ export function getTripStopsWithGmapsLinks(
         legNavUrl: buildGoogleMapsLegUrl(prevLat, prevLng, lat, lng),
         searchUrl: buildGoogleMapsSearchUrl(lat, lng),
         prevName,
-        distanceFromPrevKm: distFromPrev.toFixed(1),
+        distanceFromPrevKm: distFromPrev > 0 && distFromPrev < 0.1 ? distFromPrev.toFixed(2) : distFromPrev.toFixed(1),
       });
 
       prevLat = lat;
@@ -441,7 +441,7 @@ export function getTripStopsWithGmapsLinks(
     legNavUrl: buildGoogleMapsLegUrl(prevLat, prevLng, depotLat, depotLng),
     searchUrl: buildGoogleMapsSearchUrl(depotLat, depotLng),
     prevName,
-    distanceFromPrevKm: finalDist.toFixed(1),
+    distanceFromPrevKm: finalDist > 0 && finalDist < 0.1 ? finalDist.toFixed(2) : finalDist.toFixed(1),
   });
 
   return items;

@@ -533,12 +533,23 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       (typeof selectedTripFilter === 'string' && selectedTripFilter.startsWith('fixed-'));
 
     if (showFixedComparison && !isFocusingFixed && fixedTrip) {
-      const fixedTours =
+      const fixedItems =
         fixedTrip.subTrips && fixedTrip.subTrips.length > 0
-          ? fixedTrip.subTrips.map(st => st.tour || [depot, ...st.bins, depot])
-          : [fixedTrip.tour];
+          ? fixedTrip.subTrips.map(st => ({
+              tour: st.tour || [depot, ...st.bins, depot],
+              label: `Sub-Trip Tetap #${st.subIndex}`,
+              fallbackKm: st.realRoadKm || toRealKm(st.distance),
+            }))
+          : [
+              {
+                tour: fixedTrip.tour,
+                label: 'Jalur Rute Tetap',
+                fallbackKm: fixedTrip.realRoadKm || toRealKm(fixedTrip.distance),
+              },
+            ];
 
-      fixedTours.forEach(fTour => {
+      fixedItems.forEach(item => {
+        const fTour = item.tour;
         if (!fTour || fTour.length < 2) return;
         const fGeom = roadGeometryStore.getTourGeometry(fTour, true);
         const fCoords = fGeom.coords;
@@ -563,7 +574,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         }).addTo(map);
 
         innerFixed.bindTooltip(
-          `Jalur Rute Tetap (Konvensional): ${fGeom.realDistanceKm || toRealKm(fixedTrip.distance)} km · Garis Putus-Putus Abu-abu`,
+          `${item.label}: ${fGeom.realDistanceKm || item.fallbackKm} km · Garis Putus-Putus Abu-abu`,
           { sticky: true }
         );
 
@@ -605,7 +616,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         lineJoin: 'round',
       }).addTo(map);
 
-      const tripKm = geom.realDistanceKm || trip.realRoadKm || toRealKm(trip.distance);
+      const tripKm = geom.status === 'ok' && geom.realDistanceKm ? geom.realDistanceKm : (trip.realRoadKm || toRealKm(trip.distance));
       const tripDistNum = parseFloat(tripKm) || trip.distance;
       const tripMin = toTravelMinutes(tripDistNum, config);
       const statusLabel =

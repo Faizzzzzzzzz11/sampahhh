@@ -366,7 +366,7 @@ export const TripBreakdownCard: React.FC<TripBreakdownCardProps> = ({
                     </div>
 
                     <div className="mt-2 text-xs text-[#5B6A60] dark:text-[#A3B9B1]">
-                      <div className="text-[11px] font-medium text-[#7D8B81] dark:text-[#8FB0B4]">Urutan Rute Konvensional:</div>
+                      <div className="text-[11px] font-medium text-[#7D8B81] dark:text-[#8FB0B4]">Urutan Rute Tetap (Mulai Terdekat):</div>
                       <div className="mt-0.5 rounded-lg border border-[#D9DFD7] bg-white p-2 text-[11px] font-mono text-[#10303A] break-all dark:bg-[#121D22] dark:border-[#243741] dark:text-white">
                         {routeStr}
                       </div>
@@ -389,7 +389,7 @@ export const TripBreakdownCard: React.FC<TripBreakdownCardProps> = ({
                       RUTE TETAP
                     </span>
                     <span className="text-xs font-bold text-[#10303A] dark:text-white">
-                      Urutan Konvensional T1–T{fixedTrip.bins.length}
+                      Dari Terdekat ({fixedTrip.bins.length} Tong)
                     </span>
                     {selectedTripFilter === 'fixed' && (
                       <span className="animate-pulse rounded bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-white">

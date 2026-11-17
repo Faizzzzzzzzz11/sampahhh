@@ -1024,21 +1024,11 @@ export function runFlowchartLogic(
     const geom = roadGeometryStore.getTourGeometry(trip.tour, true);
     trip.roadCoords = geom.coords;
     const osrmDist = geom.status === 'ok' && geom.realDistanceKm ? parseFloat(geom.realDistanceKm) : null;
-    let calibratedKm: number;
-    if (osrmDist && osrmDist > 0) {
-      if (trip.tripIndex === 1 && ((osrmDist >= 28 && osrmDist <= 33) || (trip.bins.length >= 10 && trip.bins.length <= 13))) {
-        calibratedKm = 27.7;
-      } else {
-        calibratedKm = Math.round(osrmDist * 0.903 * 10) / 10;
-      }
-    } else {
-      if (trip.tripIndex === 1 && ((trip.distance >= 21.5 && trip.distance <= 25) || (trip.bins.length >= 10 && trip.bins.length <= 13))) {
-        calibratedKm = 27.7;
-      } else {
-        calibratedKm = Math.round(trip.distance * (27.7 / 23.3) * 10) / 10;
-      }
-    }
-    trip.realRoadKm = calibratedKm.toFixed(1);
+    const resolvedKm =
+      osrmDist && osrmDist > 0
+        ? Math.round(osrmDist * 10) / 10
+        : Math.round(trip.distance * 10) / 10;
+    trip.realRoadKm = resolvedKm.toFixed(1);
   });
 
   const trulyAcceptedYellow = acceptedYellow.filter(yb => yb.isAccepted);
@@ -1099,22 +1089,75 @@ export function runFlowchartLogic(
 // CONVENTIONAL FIXED ROUTE BENCHMARK
 // -------------------------------------------------------------
 
-export function fixedSplit(bins: Bin[], cfg: SystemConfig): Bin[][] {
-  const order = [...bins].sort((a, b) => a.id - b.id);
-  const groups: Bin[][] = [];
-  let cur: Bin[] = [];
-  let load = 0;
+export function fixedSplit(
+  bins: Bin[],
+  cfg: SystemConfig,
+  depot?: Depot,
+  distFn?: DistanceFn
+): Bin[][] {
+  if (!bins || bins.length === 0) return [];
 
-  order.forEach(b => {
-    if (cur.length && load + litersOf(b, cfg) > cfg.C) {
-      groups.push(cur);
-      cur = [];
-      load = 0;
+  // Fallback when depot/distance function is not provided
+  if (!depot) {
+    const order = [...bins].sort((a, b) => a.id - b.id);
+    const groups: Bin[][] = [];
+    let cur: Bin[] = [];
+    let load = 0;
+
+    order.forEach(b => {
+      if (cur.length && load + litersOf(b, cfg) > cfg.C) {
+        groups.push(cur);
+        cur = [];
+        load = 0;
+      }
+      cur.push(b);
+      load += litersOf(b, cfg);
+    });
+    if (cur.length) groups.push(cur);
+    return groups;
+  }
+
+  // Nearest-neighbor capacity-aware grouping starting from the closest bin to depot
+  const D = distFn || resolveDistanceFn(null, cfg);
+  const unvisited = [...bins];
+  const groups: Bin[][] = [];
+
+  while (unvisited.length > 0) {
+    let cur: Bin[] = [];
+    let load = 0;
+    let currentPos: Bin | Depot = depot;
+
+    while (unvisited.length > 0) {
+      let bestIdx = -1;
+      let bestDist = Infinity;
+
+      for (let i = 0; i < unvisited.length; i++) {
+        const cand = unvisited[i];
+        const fits = cur.length === 0 || load + litersOf(cand, cfg) <= cfg.C;
+        if (!fits) continue;
+        const d = D(currentPos, cand);
+        if (d < bestDist) {
+          bestDist = d;
+          bestIdx = i;
+        }
+      }
+
+      if (bestIdx === -1) {
+        // Remaining unvisited bins exceed remaining truck capacity -> return to depot
+        break;
+      }
+
+      const chosen = unvisited.splice(bestIdx, 1)[0];
+      cur.push(chosen);
+      load += litersOf(chosen, cfg);
+      currentPos = chosen;
     }
-    cur.push(b);
-    load += litersOf(b, cfg);
-  });
-  if (cur.length) groups.push(cur);
+
+    if (cur.length > 0) {
+      groups.push(cur);
+    }
+  }
+
   return groups;
 }
 
@@ -1125,39 +1168,51 @@ export function getFixedTrip(
   distMatrixOrFn?: DistanceMatrixResult | DistanceFn | null
 ): Trip {
   const D = resolveDistanceFn(distMatrixOrFn, cfg);
-  const groups = fixedSplit(bins, cfg);
-  const tour: (Bin | Depot)[] = [depot];
-  groups.forEach(g => {
-    tour.push(...g, depot);
-  });
-  if (!groups.length) tour.push(depot);
+  const rawGroups = fixedSplit(bins, cfg, depot, D);
 
-  const subTrips = groups.map((g, idx) => {
-    const subTour: (Bin | Depot)[] = [depot, ...g, depot];
+  // Optimize each sub-trip tour order so it has no crossings and starts from the nearest endpoint to depot
+  const optimizedSubTrips = rawGroups.map((g, idx) => {
+    const tourRes = findShortestTourForBins(g, depot, cfg, EXACT_TSP_LIMIT, D);
+    const orderedBins = tourRes.tour.filter(pt => typeof pt.id === 'number') as Bin[];
+    const finalBins = orderedBins.length === g.length ? orderedBins : g;
+    const subTour: (Bin | Depot)[] = [depot, ...finalBins, depot];
     const subGeom = roadGeometryStore.getTourGeometry(subTour, true);
-    // Matrix distance using D (critical so custom distance functions/matrices are evaluated)
-    const subDist = calculateTourDistance(subTour, cfg, D);
+    const subDist = tourRes.distance > 0 ? tourRes.distance : calculateTourDistance(subTour, cfg, D);
     const subOsrmDist =
       subGeom.status === 'ok' && subGeom.realDistanceKm
         ? parseFloat(subGeom.realDistanceKm)
         : null;
     const realKm =
       subOsrmDist && subOsrmDist > 0
-        ? (subOsrmDist >= 28 ? (subOsrmDist * 0.903).toFixed(1) : subOsrmDist.toFixed(1))
-        : toRealKm(subDist * (27.7 / 23.3));
+        ? (Math.round(subOsrmDist * 10) / 10).toFixed(1)
+        : toRealKm(subDist);
 
     const finalSubDist = parseFloat(realKm) || subDist;
 
     return {
       subIndex: idx + 1,
-      bins: g,
+      bins: finalBins,
       tour: subTour,
-      loadLiter: g.reduce((sum, b) => sum + litersOf(b, cfg), 0),
+      loadLiter: finalBins.reduce((sum, b) => sum + litersOf(b, cfg), 0),
       distance: Math.round(finalSubDist * 10) / 10,
       roadCoords: subGeom.coords,
       realRoadKm: realKm,
+      firstDist: finalBins.length > 0 ? D(depot, finalBins[0]) : Infinity,
     };
   });
+
+  // Ensure sub-trips are ordered starting from the one nearest to the depot
+  optimizedSubTrips.sort((a, b) => a.firstDist - b.firstDist);
+  const subTrips = optimizedSubTrips.map(({ firstDist: _firstDist, ...st }, idx) => ({
+    ...st,
+    subIndex: idx + 1,
+  }));
+
+  const tour: (Bin | Depot)[] = [depot];
+  subTrips.forEach(st => {
+    tour.push(...st.bins, depot);
+  });
+  if (!subTrips.length) tour.push(depot);
 
   const tourGeom = roadGeometryStore.getTourGeometry(tour, true);
   const combinedSubCoords: [number, number][] = [];
@@ -1170,8 +1225,6 @@ export function getFixedTrip(
   const resolvedRoadCoords =
     combinedSubCoords.length > 1
       ? combinedSubCoords
-      : tourGeom.coords && tourGeom.coords.length > 1
-      ? tourGeom.coords
       : tourGeom.coords;
 
   // Total distance for fixed route is the exact sum of its sub-trips returning to the depot
@@ -1181,12 +1234,12 @@ export function getFixedTrip(
   const trip: Trip = {
     tripIndex: 'fixed',
     isFixed: true,
-    bins: groups.flat(),
+    bins: subTrips.flatMap(st => st.bins),
     loadLiter: subTrips.reduce((sum, t) => sum + t.loadLiter, 0),
     tour,
     distance: resolvedTotalDist,
     subTrips,
-    subTripCount: groups.length,
+    subTripCount: subTrips.length,
     roadCoords: resolvedRoadCoords,
     realRoadKm: resolvedTotalDist.toFixed(1),
   };
